@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+**/.vs/
+**/logs/
+**/*.user
+ClyvoElo.Tests.Unit/
+ClyvoElo.Tests.Integration/
