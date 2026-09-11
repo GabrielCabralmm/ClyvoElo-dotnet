@@ -1,0 +1,10 @@
+CLYVO Elo — Challenge FIAP 2026 (CLYVO VET)
+2º Semestre — Sprint 3
+Disciplina: Advanced Business Development with .NET
+
+Integrantes:
+Gabriel Cabral Mendes Mariano - RM563230 - Turma 2TDSPO
+João Victor Santana dos Santos - RM566063 - Turma 2TDSPX
+
+Link do Deploy (Render): https://clyvoelo-dotnet.onrender.com/swagger/index.html
+Link do GitHub: https://github.com/GabrielCabralmm/ClyvoElo-dotnet

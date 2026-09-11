@@ -52,6 +52,33 @@ public class AuthController : ControllerBase
         return Ok(new LoginResponse { Token = token, Papel = "Doutor", Id = doutor.IdDoutor, Nome = doutor.Nome });
     }
 
+    [HttpPost("cadastro/tutor")]
+    public async Task<IActionResult> CadastroTutor([FromBody] CadastroTutorRequest request)
+    {
+        var jaExiste = await _context.Tutores.AnyAsync(t => t.Email == request.Email);
+        if (jaExiste)
+        {
+            return Conflict(new { erro = "Já existe uma conta com esse email" });
+        }
+
+        var tutor = new Tutor
+        {
+            Nome = request.Nome,
+            Email = request.Email,
+            SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha),
+            Telefone = request.Telefone,
+            DataCadastro = DateTime.UtcNow,
+        };
+
+        _context.Tutores.Add(tutor);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Novo tutor cadastrado: {Email}", tutor.Email);
+
+        var token = GerarToken(tutor.Email, "Tutor", tutor.IdTutor);
+        return Ok(new LoginResponse { Token = token, Papel = "Tutor", Id = tutor.IdTutor, Nome = tutor.Nome });
+    }
+
     private string GerarToken(string email, string papel, int id)
     {
         var jwtKey = _config["Jwt:Key"]!;
