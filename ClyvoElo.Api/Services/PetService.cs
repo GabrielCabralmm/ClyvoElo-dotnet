@@ -61,4 +61,9 @@ public class PetService : IPetService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<IEnumerable<Pet>> ListarPorTutorAsync(int idTutor)
+    {
+        return await _context.Pets.Include(p => p.Tutor).Where(p => p.IdTutor == idTutor).ToListAsync();
+    }
 }

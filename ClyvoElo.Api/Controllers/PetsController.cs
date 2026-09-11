@@ -27,7 +27,21 @@ public class PetsController : ControllerBase
         return Ok(pets);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("meus")]
+    [Authorize(Roles = "Tutor")]
+    public async Task<IActionResult> ListarMeusPets()
+    {
+        var idTutorClaim = User.FindFirst("id")?.Value;
+        if (!int.TryParse(idTutorClaim, out var idTutor))
+        {
+            return Unauthorized();
+        }
+
+        var pets = await _petService.ListarPorTutorAsync(idTutor);
+        return Ok(pets);
+    }
+
+    [HttpGet("{id:int}")]
     [AllowAnonymous]
     public async Task<IActionResult> BuscarPorId(int id)
     {
