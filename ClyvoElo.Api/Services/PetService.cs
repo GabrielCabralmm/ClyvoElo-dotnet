@@ -48,4 +48,17 @@ public class PetService : IPetService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> DeletarAsync(int id)
+    {
+        var pet = await _context.Pets.FindAsync(id);
+        if (pet is null)
+        {
+            return false;
+        }
+
+        _context.Pets.Remove(pet);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

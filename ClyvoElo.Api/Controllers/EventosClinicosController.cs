@@ -86,4 +86,20 @@ public class EventosClinicosController : ControllerBase
         _logger.LogInformation("Evento {IdEvento} atualizado para status {Status}", id, novoStatus);
         return NoContent();
     }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Doutor")]
+    public async Task<IActionResult> Deletar(int id)
+    {
+        var evento = await _context.EventosClinicos.FindAsync(id);
+        if (evento is null)
+        {
+            return NotFound(new { erro = $"Evento {id} não encontrado" });
+        }
+
+        _context.EventosClinicos.Remove(evento);
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Evento {IdEvento} removido", id);
+        return NoContent();
+    }
 }

@@ -8,4 +8,5 @@ public interface IPetService
     Task<Pet?> BuscarPorIdAsync(int id);
     Task<Pet> CriarAsync(Pet pet);
     Task<bool> AtualizarPesoAsync(int id, decimal novoPeso);
+    Task<bool> DeletarAsync(int id);
 }

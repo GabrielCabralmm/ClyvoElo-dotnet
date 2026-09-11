@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ClyvoElo.Api.Models;
 using ClyvoElo.Api.Services;
 
@@ -73,6 +74,29 @@ public class PetsController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { erro = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Tutor")]
+    public async Task<IActionResult> Deletar(int id)
+    {
+        try
+        {
+            var deletado = await _petService.DeletarAsync(id);
+            if (!deletado)
+            {
+                return NotFound(new { erro = $"Pet {id} não encontrado" });
+            }
+            _logger.LogInformation("Pet {Id} removido", id);
+            return NoContent();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(new
+            {
+                erro = "Não é possível excluir esse pet: existem eventos clínicos, dispositivos ou alertas vinculados a ele."
+            });
         }
     }
 }

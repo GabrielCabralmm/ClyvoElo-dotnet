@@ -47,8 +47,8 @@ O token retornado deve ser colado no botão **Authorize** do Swagger para acessa
 
 | Ação | Papel exigido |
 |---|---|
-| Cadastrar pet / atualizar peso | Tutor |
-| Registrar evento clínico / atualizar status | Doutor |
+| Cadastrar pet / atualizar peso / excluir pet | Tutor |
+| Registrar evento clínico / atualizar status / excluir evento | Doutor |
 | Consultas (GET) | Livre, sem login |
 
 ### Valores aceitos pelo banco
