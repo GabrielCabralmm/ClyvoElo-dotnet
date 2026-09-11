@@ -55,8 +55,8 @@ public class AuthController : ControllerBase
     [HttpPost("cadastro/tutor")]
     public async Task<IActionResult> CadastroTutor([FromBody] CadastroTutorRequest request)
     {
-        var jaExiste = await _context.Tutores.AnyAsync(t => t.Email == request.Email);
-        if (jaExiste)
+        var tutorExistente = await _context.Tutores.FirstOrDefaultAsync(t => t.Email == request.Email);
+        if (tutorExistente is not null)
         {
             return Conflict(new { erro = "Já existe uma conta com esse email" });
         }
