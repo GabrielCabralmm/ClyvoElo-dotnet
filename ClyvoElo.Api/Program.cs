@@ -46,9 +46,9 @@ builder.Services.AddScoped<IPetService, PetService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddHealthChecks()
-    .AddCheck<ApiSelfHealthCheck>("api")
-    .AddCheck<OracleHealthCheck>("oracle_db")
-    .AddCheck<ServicoExternoHealthCheck>("servico_externo");
+    .AddCheck<ApiSelfHealthCheck>("api", tags: new[] { "live" })
+    .AddCheck<OracleHealthCheck>("oracle_db", tags: new[] { "ready", "banco" })
+    .AddCheck<ServicoExternoHealthCheck>("servico_externo", tags: new[] { "ready", "externo" });
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(ClyvoEloTelemetry.ServiceName))
@@ -145,6 +145,18 @@ app.MapControllers();
 
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse,
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live"),
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse,
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
     ResponseWriter = HealthCheckResponseWriter.WriteResponse,
 });
 

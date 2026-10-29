@@ -12,12 +12,14 @@ public static class HealthCheckResponseWriter
         var resultado = new
         {
             status = report.Status.ToString(),
+            duracaoTotalMs = report.TotalDuration.TotalMilliseconds,
             checks = report.Entries.Select(e => new
             {
                 nome = e.Key,
                 status = e.Value.Status.ToString(),
                 descricao = e.Value.Description,
                 duracaoMs = e.Value.Duration.TotalMilliseconds,
+                tags = e.Value.Tags,
             }),
         };
 
