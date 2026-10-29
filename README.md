@@ -79,14 +79,14 @@ ClyvoElo.Tests.Unit/
 ClyvoElo.Tests.Integration/
   Endpoints/  Fixtures/  Fakes/
 docs/
-  arquitetura.png  swagger.json
+  arquitetura.png  arquitetura.svg  swagger.json  migracao-inicial.sql
 ```
 
 ## Persistência
 
 ### Oracle (relacional) com EF Core
 
-As tabelas `TUTOR`, `PET`, `CLINICA`, `DOUTOR`, `EVENTO_CLINICO`, `DISPOSITIVO_IOT` e `LEITURA_SENSOR` são mapeadas em `ClyvoElo.Infrastructure/Persistence/Configurations`. A migração inicial fica em `Persistence/Migrations`.
+As tabelas `TUTOR`, `PET`, `CLINICA`, `DOUTOR`, `EVENTO_CLINICO`, `DISPOSITIVO_IOT` e `LEITURA_SENSOR` são mapeadas em `ClyvoElo.Infrastructure/Persistence/Configurations`. A migração inicial (`20261029160111_CriacaoInicial`) fica em `Persistence/Migrations`. O SQL que ela gera para o Oracle foi exportado em [`docs/migracao-inicial.sql`](docs/migracao-inicial.sql).
 
 Para instalar a ferramenta do EF (uma vez só):
 
@@ -110,7 +110,7 @@ CREATE TABLE "__EFMigrationsHistory" (
   "ProductVersion" NVARCHAR2(32) NOT NULL,
   CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
 );
-INSERT INTO "__EFMigrationsHistory" VALUES ('<id da migração em Persistence/Migrations>', '10.0.12');
+INSERT INTO "__EFMigrationsHistory" VALUES ('20261029160111_CriacaoInicial', '10.0.12');
 COMMIT;
 ```
 
@@ -380,6 +380,8 @@ Para monitorar em produção, aponte o liveness probe para `/health/live` e o re
 ```
 dotnet test
 ```
+
+Resultado atual: **100 testes passando** (75 unitários e 25 de integração).
 
 Para gerar o relatório de cobertura:
 
