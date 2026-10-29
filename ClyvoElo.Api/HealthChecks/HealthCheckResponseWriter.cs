@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -5,11 +6,15 @@ namespace ClyvoElo.Api.HealthChecks;
 
 public static class HealthCheckResponseWriter
 {
-    private static readonly JsonSerializerOptions Opcoes = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Opcoes = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     public static Task WriteResponse(HttpContext context, HealthReport report)
     {
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = "application/json; charset=utf-8";
 
         var resultado = new
         {
