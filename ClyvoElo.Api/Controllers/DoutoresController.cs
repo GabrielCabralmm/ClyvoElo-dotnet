@@ -1,39 +1,42 @@
+using ClyvoElo.Api.Hateoas;
+using ClyvoElo.Application.DTOs.Doutores;
+using ClyvoElo.Application.Services;
+using ClyvoElo.Domain.Filtros;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ClyvoElo.Api.Data;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ClyvoElo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[AllowAnonymous]
 public class DoutoresController : ControllerBase
 {
-    private readonly ClyvoEloContext _context;
+    private readonly IDoutorService _doutorService;
 
-    public DoutoresController(ClyvoEloContext context)
+    public DoutoresController(IDoutorService doutorService)
     {
-        _context = context;
+        _doutorService = doutorService;
     }
 
-    [HttpGet]
-    [AllowAnonymous]
-    public async Task<IActionResult> Listar()
+    [HttpGet(Name = "ListarDoutores")]
+    [SwaggerOperation(Summary = "Lista os doutores", Description = "Filtros: nome, idClinica. Ordenação: nome, crmv, id.")]
+    [ProducesResponseType(typeof(RespostaPaginada<DoutorResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RespostaPaginada<DoutorResponse>>> Listar([FromQuery] DoutorFiltro filtro, CancellationToken cancellationToken)
     {
-        var doutores = await _context.Doutores.Include(d => d.Clinica).ToListAsync();
-        return Ok(doutores);
+        var resultado = await _doutorService.ListarAsync(filtro, cancellationToken);
+        return Ok(resultado.ParaRespostaPaginada(Request, doutor => doutor.ComLinks(Url)));
     }
 
-    [HttpGet("{id}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> BuscarPorId(int id)
+    [HttpGet("{id:int}", Name = "BuscarDoutorPorId")]
+    [SwaggerOperation(Summary = "Busca um doutor pelo id")]
+    [ProducesResponseType(typeof(DoutorResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DoutorResponse>> BuscarPorId(int id, CancellationToken cancellationToken)
     {
-        var doutor = await _context.Doutores.Include(d => d.Clinica)
-            .FirstOrDefaultAsync(d => d.IdDoutor == id);
-        if (doutor is null)
-        {
-            return NotFound(new { erro = $"Doutor {id} não encontrado" });
-        }
-        return Ok(doutor);
+        var doutor = await _doutorService.BuscarPorIdAsync(id, cancellationToken);
+        return Ok(doutor.ComLinks(Url));
     }
 }

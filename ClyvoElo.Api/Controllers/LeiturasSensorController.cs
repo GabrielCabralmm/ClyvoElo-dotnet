@@ -1,56 +1,73 @@
+using ClyvoElo.Api.Hateoas;
+using ClyvoElo.Application.DTOs.LeiturasSensor;
+using ClyvoElo.Application.Services;
+using ClyvoElo.Domain.Filtros;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ClyvoElo.Api.Data;
-using ClyvoElo.Api.Models;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ClyvoElo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[AllowAnonymous]
 public class LeiturasSensorController : ControllerBase
 {
-    private readonly ClyvoEloContext _context;
-    private readonly ILogger<LeiturasSensorController> _logger;
+    private readonly ILeituraSensorService _leituraService;
 
-    public LeiturasSensorController(ClyvoEloContext context, ILogger<LeiturasSensorController> logger)
+    public LeiturasSensorController(ILeituraSensorService leituraService)
     {
-        _context = context;
-        _logger = logger;
+        _leituraService = leituraService;
     }
 
-    [HttpGet("pet/{idPet}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> ListarPorPet(int idPet)
+    [HttpGet(Name = "ListarLeituras")]
+    [SwaggerOperation(Summary = "Lista as leituras dos sensores", Description = "Filtros: idPet, idDispositivo, tipoMedida, dataInicio, dataFim. Ordenação: data, valor, tipo (padrão: mais recente).")]
+    [ProducesResponseType(typeof(RespostaPaginada<LeituraSensorResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RespostaPaginada<LeituraSensorResponse>>> Listar([FromQuery] LeituraSensorFiltro filtro, CancellationToken cancellationToken)
     {
-        var leituras = await _context.LeiturasSensor
-            .Include(l => l.Dispositivo)
-            .Where(l => l.Dispositivo != null && l.Dispositivo.IdPet == idPet)
-            .OrderByDescending(l => l.DataHoraLeitura)
-            .ToListAsync();
-        return Ok(leituras);
+        var resultado = await _leituraService.ListarAsync(filtro, cancellationToken);
+        return Ok(resultado.ParaRespostaPaginada(Request, leitura => leitura.ComLinks(Url)));
     }
 
-    [HttpGet("dispositivo/{idDispositivo}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> ListarPorDispositivo(int idDispositivo)
+    [HttpGet("{id:int}", Name = "BuscarLeituraPorId")]
+    [SwaggerOperation(Summary = "Busca uma leitura pelo id")]
+    [ProducesResponseType(typeof(LeituraSensorResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LeituraSensorResponse>> BuscarPorId(int id, CancellationToken cancellationToken)
     {
-        var leituras = await _context.LeiturasSensor
-            .Where(l => l.IdDispositivo == idDispositivo)
-            .OrderByDescending(l => l.DataHoraLeitura)
-            .ToListAsync();
-        return Ok(leituras);
+        var leitura = await _leituraService.BuscarPorIdAsync(id, cancellationToken);
+        return Ok(leitura.ComLinks(Url));
     }
 
-    [HttpPost]
-    [AllowAnonymous]
-    public async Task<IActionResult> Registrar([FromBody] LeituraSensor leitura)
+    [HttpGet("pet/{idPet:int}", Name = "ListarLeiturasDoPet")]
+    [SwaggerOperation(Summary = "Lista as leituras de todos os dispositivos de um pet")]
+    [ProducesResponseType(typeof(RespostaPaginada<LeituraSensorResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RespostaPaginada<LeituraSensorResponse>>> ListarPorPet(int idPet, [FromQuery] LeituraSensorFiltro filtro, CancellationToken cancellationToken)
     {
-        _context.LeiturasSensor.Add(leitura);
-        await _context.SaveChangesAsync();
-        _logger.LogInformation(
-            "Leitura {TipoMedida} = {ValorMedido} registrada para o dispositivo {IdDispositivo}",
-            leitura.TipoMedida, leitura.ValorMedido, leitura.IdDispositivo);
-        return CreatedAtAction(nameof(ListarPorDispositivo), new { idDispositivo = leitura.IdDispositivo }, leitura);
+        filtro.IdPet = idPet;
+        var resultado = await _leituraService.ListarAsync(filtro, cancellationToken);
+        return Ok(resultado.ParaRespostaPaginada(Request, leitura => leitura.ComLinks(Url)));
+    }
+
+    [HttpGet("dispositivo/{idDispositivo:int}", Name = "ListarLeiturasDoDispositivo")]
+    [SwaggerOperation(Summary = "Lista as leituras de um dispositivo")]
+    [ProducesResponseType(typeof(RespostaPaginada<LeituraSensorResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RespostaPaginada<LeituraSensorResponse>>> ListarPorDispositivo(int idDispositivo, [FromQuery] LeituraSensorFiltro filtro, CancellationToken cancellationToken)
+    {
+        filtro.IdDispositivo = idDispositivo;
+        var resultado = await _leituraService.ListarAsync(filtro, cancellationToken);
+        return Ok(resultado.ParaRespostaPaginada(Request, leitura => leitura.ComLinks(Url)));
+    }
+
+    [HttpPost(Name = "RegistrarLeitura")]
+    [SwaggerOperation(Summary = "Registra uma leitura enviada pelo dispositivo IoT")]
+    [ProducesResponseType(typeof(LeituraSensorResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LeituraSensorResponse>> Registrar([FromBody] RegistrarLeituraRequest request, CancellationToken cancellationToken)
+    {
+        var leitura = await _leituraService.RegistrarAsync(request, cancellationToken);
+        return CreatedAtRoute("BuscarLeituraPorId", new { id = leitura.IdLeitura }, leitura.ComLinks(Url));
     }
 }

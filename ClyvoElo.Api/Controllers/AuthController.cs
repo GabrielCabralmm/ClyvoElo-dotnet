@@ -1,104 +1,51 @@
+using ClyvoElo.Application.DTOs.Auth;
+using ClyvoElo.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using ClyvoElo.Api.Data;
-using ClyvoElo.Api.Models;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ClyvoElo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
-    private readonly ClyvoEloContext _context;
-    private readonly IConfiguration _config;
-    private readonly ILogger<AuthController> _logger;
+    private readonly IAuthService _authService;
 
-    public AuthController(ClyvoEloContext context, IConfiguration config, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService)
     {
-        _context = context;
-        _config = config;
-        _logger = logger;
+        _authService = authService;
     }
 
     [HttpPost("login/tutor")]
-    public async Task<IActionResult> LoginTutor([FromBody] LoginRequest request)
+    [SwaggerOperation(Summary = "Login do tutor", Description = "Devolve um token JWT com o papel Tutor.")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> LoginTutor([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var tutor = await _context.Tutores.FirstOrDefaultAsync(t => t.Email == request.Email);
-        if (tutor is null || !BCrypt.Net.BCrypt.Verify(request.Senha, tutor.SenhaHash))
-        {
-            _logger.LogWarning("Tentativa de login de tutor com credenciais inválidas para o email {Email}", request.Email);
-            return Unauthorized(new { erro = "Email ou senha inválidos" });
-        }
-
-        var token = GerarToken(tutor.Email, "Tutor", tutor.IdTutor);
-        return Ok(new LoginResponse { Token = token, Papel = "Tutor", Id = tutor.IdTutor, Nome = tutor.Nome });
+        return Ok(await _authService.LoginTutorAsync(request, cancellationToken));
     }
 
     [HttpPost("login/doutor")]
-    public async Task<IActionResult> LoginDoutor([FromBody] LoginRequest request)
+    [SwaggerOperation(Summary = "Login do doutor", Description = "Devolve um token JWT com o papel Doutor.")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> LoginDoutor([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var doutor = await _context.Doutores.FirstOrDefaultAsync(d => d.Email == request.Email);
-        if (doutor is null || !BCrypt.Net.BCrypt.Verify(request.Senha, doutor.SenhaHash))
-        {
-            _logger.LogWarning("Tentativa de login de doutor com credenciais inválidas para o email {Email}", request.Email);
-            return Unauthorized(new { erro = "Email ou senha inválidos" });
-        }
-
-        var token = GerarToken(doutor.Email, "Doutor", doutor.IdDoutor);
-        return Ok(new LoginResponse { Token = token, Papel = "Doutor", Id = doutor.IdDoutor, Nome = doutor.Nome });
+        return Ok(await _authService.LoginDoutorAsync(request, cancellationToken));
     }
 
     [HttpPost("cadastro/tutor")]
-    public async Task<IActionResult> CadastroTutor([FromBody] CadastroTutorRequest request)
+    [SwaggerOperation(Summary = "Cadastro de tutor", Description = "Cria a conta do tutor e já devolve o token de acesso.")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<LoginResponse>> CadastroTutor([FromBody] CadastroTutorRequest request, CancellationToken cancellationToken)
     {
-        var tutorExistente = await _context.Tutores.FirstOrDefaultAsync(t => t.Email == request.Email);
-        if (tutorExistente is not null)
-        {
-            return Conflict(new { erro = "Já existe uma conta com esse email" });
-        }
-
-        var tutor = new Tutor
-        {
-            Nome = request.Nome,
-            Email = request.Email,
-            SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha),
-            Telefone = request.Telefone,
-            DataCadastro = DateTime.UtcNow,
-        };
-
-        _context.Tutores.Add(tutor);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Novo tutor cadastrado: {Email}", tutor.Email);
-
-        var token = GerarToken(tutor.Email, "Tutor", tutor.IdTutor);
-        return Ok(new LoginResponse { Token = token, Papel = "Tutor", Id = tutor.IdTutor, Nome = tutor.Nome });
-    }
-
-    private string GerarToken(string email, string papel, int id)
-    {
-        var jwtKey = _config["Jwt:Key"]!;
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.Name, email),
-            new Claim(ClaimTypes.Role, papel),
-            new Claim("id", id.ToString()),
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddHours(2),
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Ok(await _authService.CadastrarTutorAsync(request, cancellationToken));
     }
 }

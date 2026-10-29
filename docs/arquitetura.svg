@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="900" viewBox="0 0 1280 900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="setaTracejada" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+    </marker>
+    <style>
+      .titulo { font-size: 15px; font-weight: 700; fill: #0f172a; }
+      .sub { font-size: 12px; fill: #475569; }
+      .item { font-size: 12.5px; fill: #0f172a; }
+      .rot { font-size: 12px; fill: #334155; font-weight: 600; }
+      .rotRoxo { font-size: 12px; fill: #6d28d9; font-weight: 600; }
+      .chip { fill: #ffffff; stroke: #cbd5e1; rx: 6; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="900" fill="#ffffff"/>
+  <text x="40" y="38" font-size="22" font-weight="700" fill="#0f172a">CLYVO Elo API — Clean Architecture</text>
+  <text x="40" y="60" class="sub">As setas sólidas mostram a direção das dependências; as tracejadas mostram quem implementa os contratos.</text>
+
+  <g>
+    <rect x="200" y="85" width="760" height="90" rx="12" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="220" y="108" class="titulo">Clientes</text>
+    <rect x="225" y="120" width="210" height="42" class="chip"/>
+    <text x="330" y="146" text-anchor="middle" class="item">App Mobile (Tutor)</text>
+    <rect x="475" y="120" width="210" height="42" class="chip"/>
+    <text x="580" y="146" text-anchor="middle" class="item">Painel da Clínica (Doutor)</text>
+    <rect x="725" y="120" width="210" height="42" class="chip"/>
+    <text x="830" y="146" text-anchor="middle" class="item">Dispositivos IoT (potes)</text>
+  </g>
+
+  <line x1="580" y1="175" x2="580" y2="218" stroke="#334155" stroke-width="2" marker-end="url(#seta)"/>
+  <text x="592" y="202" class="rot">HTTPS / JSON + Bearer JWT</text>
+
+  <g>
+    <rect x="200" y="222" width="760" height="150" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="220" y="246" class="titulo">ClyvoElo.Api</text>
+    <text x="330" y="246" class="sub">apresentação — recebe HTTP, autentica e devolve JSON</text>
+    <rect x="220" y="262" width="230" height="94" class="chip"/>
+    <text x="335" y="285" text-anchor="middle" class="rot">Middlewares</text>
+    <text x="335" y="305" text-anchor="middle" class="item">Correlation Id · Serilog</text>
+    <text x="335" y="323" text-anchor="middle" class="item">Exception Handler global</text>
+    <text x="335" y="341" text-anchor="middle" class="item">JWT · CORS</text>
+    <rect x="465" y="262" width="230" height="94" class="chip"/>
+    <text x="580" y="285" text-anchor="middle" class="rot">Controllers REST</text>
+    <text x="580" y="305" text-anchor="middle" class="item">Swagger / OpenAPI</text>
+    <text x="580" y="323" text-anchor="middle" class="item">Paginação · Filtros · Ordenação</text>
+    <text x="580" y="341" text-anchor="middle" class="item">HATEOAS</text>
+    <rect x="710" y="262" width="230" height="94" class="chip"/>
+    <text x="825" y="285" text-anchor="middle" class="rot">Health Checks (tags)</text>
+    <text x="825" y="305" text-anchor="middle" class="item">/health/live → api</text>
+    <text x="825" y="323" text-anchor="middle" class="item">/health/ready → oracle, mongo,</text>
+    <text x="825" y="341" text-anchor="middle" class="item">serviço externo</text>
+  </g>
+
+  <line x1="580" y1="372" x2="580" y2="418" stroke="#334155" stroke-width="2" marker-end="url(#seta)"/>
+
+  <g>
+    <rect x="200" y="422" width="760" height="130" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+    <text x="220" y="446" class="titulo">ClyvoElo.Application</text>
+    <text x="385" y="446" class="sub">casos de uso — orquestra regras, autorização por dono e logs</text>
+    <rect x="220" y="462" width="300" height="74" class="chip"/>
+    <text x="370" y="486" text-anchor="middle" class="rot">Services</text>
+    <text x="370" y="506" text-anchor="middle" class="item">Auth · Pet · EventoClinico · Doutor</text>
+    <text x="370" y="524" text-anchor="middle" class="item">DispositivoIot · LeituraSensor · Mensagem</text>
+    <rect x="535" y="462" width="180" height="74" class="chip"/>
+    <text x="625" y="494" text-anchor="middle" class="rot">DTOs e Mappers</text>
+    <text x="625" y="514" text-anchor="middle" class="item">sem expor SenhaHash</text>
+    <rect x="730" y="462" width="210" height="74" class="chip"/>
+    <text x="835" y="494" text-anchor="middle" class="rot">Interfaces</text>
+    <text x="835" y="514" text-anchor="middle" class="item">ITokenService · IPasswordHasher</text>
+  </g>
+
+  <line x1="580" y1="552" x2="580" y2="598" stroke="#334155" stroke-width="2" marker-end="url(#seta)"/>
+
+  <g>
+    <rect x="200" y="602" width="760" height="130" rx="12" fill="#fef9c3" stroke="#eab308" stroke-width="1.5"/>
+    <text x="220" y="626" class="titulo">ClyvoElo.Domain</text>
+    <text x="355" y="626" class="sub">núcleo — não depende de nenhum outro projeto</text>
+    <rect x="220" y="642" width="350" height="74" class="chip"/>
+    <text x="395" y="666" text-anchor="middle" class="rot">Entidades com regras de negócio</text>
+    <text x="395" y="686" text-anchor="middle" class="item">Pet · EventoClinico · LeituraSensor</text>
+    <text x="395" y="704" text-anchor="middle" class="item">MensagemAcompanhamento · Tutor · Doutor</text>
+    <rect x="585" y="642" width="355" height="74" class="chip"/>
+    <text x="762" y="666" text-anchor="middle" class="rot">Contratos de repositório + filtros</text>
+    <text x="762" y="686" text-anchor="middle" class="item">IPetRepository · IEventoClinicoRepository ...</text>
+    <text x="762" y="704" text-anchor="middle" class="item">IMensagemAcompanhamentoRepository</text>
+  </g>
+
+  <g>
+    <rect x="1010" y="422" width="240" height="310" rx="12" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+    <text x="1030" y="446" class="titulo">ClyvoElo.Infrastructure</text>
+    <text x="1030" y="464" class="sub">detalhes técnicos</text>
+    <rect x="1030" y="478" width="200" height="58" class="chip"/>
+    <text x="1130" y="502" text-anchor="middle" class="rot">JwtTokenService</text>
+    <text x="1130" y="520" text-anchor="middle" class="item">BCryptPasswordHasher</text>
+    <rect x="1030" y="552" width="200" height="74" class="chip"/>
+    <text x="1130" y="576" text-anchor="middle" class="rot">EF Core + Migrations</text>
+    <text x="1130" y="596" text-anchor="middle" class="item">ClyvoEloContext</text>
+    <text x="1130" y="614" text-anchor="middle" class="item">repositórios relacionais</text>
+    <rect x="1030" y="642" width="200" height="74" class="chip"/>
+    <text x="1130" y="666" text-anchor="middle" class="rot">MongoDB.Driver</text>
+    <text x="1130" y="686" text-anchor="middle" class="item">repositório de</text>
+    <text x="1130" y="704" text-anchor="middle" class="item">mensagens</text>
+  </g>
+
+  <path d="M1030,507 C990,507 980,499 942,499" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#setaTracejada)"/>
+  <text x="962" y="486" class="rotRoxo" text-anchor="middle">implementa</text>
+  <path d="M1030,640 C995,640 985,679 942,679" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#setaTracejada)"/>
+
+  <g>
+    <path d="M1010,790 a40,12 0 0,1 100,0 v56 a40,12 0 0,1 -100,0 z" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+    <ellipse cx="1060" cy="790" rx="50" ry="12" fill="#fecaca" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="1060" y="828" text-anchor="middle" class="rot">Oracle</text>
+    <path d="M1140,790 a40,12 0 0,1 100,0 v56 a40,12 0 0,1 -100,0 z" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <ellipse cx="1190" cy="790" rx="50" ry="12" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="1190" y="828" text-anchor="middle" class="rot">MongoDB</text>
+  </g>
+  <line x1="1080" y1="732" x2="1065" y2="774" stroke="#334155" stroke-width="2" marker-end="url(#seta)"/>
+  <line x1="1180" y1="732" x2="1188" y2="774" stroke="#334155" stroke-width="2" marker-end="url(#seta)"/>
+
+  <g>
+    <rect x="30" y="222" width="140" height="150" rx="12" fill="#f8fafc" stroke="#64748b" stroke-dasharray="5 4"/>
+    <text x="100" y="250" text-anchor="middle" class="titulo">Observabilidade</text>
+    <text x="100" y="280" text-anchor="middle" class="item">Serilog</text>
+    <text x="100" y="298" text-anchor="middle" class="item">console + arquivo</text>
+    <text x="100" y="326" text-anchor="middle" class="item">OpenTelemetry</text>
+    <text x="100" y="344" text-anchor="middle" class="item">traces e métricas</text>
+  </g>
+  <line x1="200" y1="297" x2="174" y2="297" stroke="#334155" stroke-width="2" marker-end="url(#seta)"/>
+
+  <g>
+    <rect x="30" y="422" width="140" height="310" rx="12" fill="#f8fafc" stroke="#64748b" stroke-dasharray="5 4"/>
+    <text x="100" y="450" text-anchor="middle" class="titulo">Testes</text>
+    <text x="100" y="482" text-anchor="middle" class="rot">Tests.Unit</text>
+    <text x="100" y="502" text-anchor="middle" class="item">Domain</text>
+    <text x="100" y="520" text-anchor="middle" class="item">Application (Moq)</text>
+    <text x="100" y="538" text-anchor="middle" class="item">Api (controllers</text>
+    <text x="100" y="556" text-anchor="middle" class="item">e exceções)</text>
+    <text x="100" y="600" text-anchor="middle" class="rot">Tests.Integration</text>
+    <text x="100" y="620" text-anchor="middle" class="item">WebApplication-</text>
+    <text x="100" y="638" text-anchor="middle" class="item">Factory + EF</text>
+    <text x="100" y="656" text-anchor="middle" class="item">InMemory</text>
+    <text x="100" y="684" text-anchor="middle" class="item">padrão AAA</text>
+    <text x="100" y="702" text-anchor="middle" class="item">xUnit · Fixtures</text>
+  </g>
+</svg>

@@ -1,116 +1,96 @@
+using ClyvoElo.Api.Extensions;
+using ClyvoElo.Api.Hateoas;
+using ClyvoElo.Application.Common;
+using ClyvoElo.Application.DTOs.Pets;
+using ClyvoElo.Application.Services;
+using ClyvoElo.Domain.Filtros;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ClyvoElo.Api.Models;
-using ClyvoElo.Api.Services;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ClyvoElo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class PetsController : ControllerBase
 {
     private readonly IPetService _petService;
-    private readonly ILogger<PetsController> _logger;
 
-    public PetsController(IPetService petService, ILogger<PetsController> logger)
+    public PetsController(IPetService petService)
     {
         _petService = petService;
-        _logger = logger;
     }
 
-    [HttpGet]
+    [HttpGet(Name = "ListarPets")]
     [AllowAnonymous]
-    public async Task<IActionResult> Listar()
+    [SwaggerOperation(Summary = "Lista os pets", Description = "Filtros: nome, especie, raca, idTutor. Ordenação: nome, especie, peso, dataNascimento.")]
+    [ProducesResponseType(typeof(RespostaPaginada<PetResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RespostaPaginada<PetResponse>>> Listar([FromQuery] PetFiltro filtro, CancellationToken cancellationToken)
     {
-        var pets = await _petService.ListarTodosAsync();
-        return Ok(pets);
+        var resultado = await _petService.ListarAsync(filtro, cancellationToken);
+        return Ok(resultado.ParaRespostaPaginada(Request, pet => pet.ComLinks(Url)));
     }
 
-    [HttpGet("meus")]
-    [Authorize(Roles = "Tutor")]
-    public async Task<IActionResult> ListarMeusPets()
+    [HttpGet("meus", Name = "ListarMeusPets")]
+    [Authorize(Roles = Papeis.Tutor)]
+    [SwaggerOperation(Summary = "Lista os pets do tutor logado")]
+    [ProducesResponseType(typeof(RespostaPaginada<PetResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<RespostaPaginada<PetResponse>>> ListarMeusPets([FromQuery] PetFiltro filtro, CancellationToken cancellationToken)
     {
-        var idTutorClaim = User.FindFirst("id")?.Value;
-        if (!int.TryParse(idTutorClaim, out var idTutor))
-        {
-            return Unauthorized();
-        }
-
-        var pets = await _petService.ListarPorTutorAsync(idTutor);
-        return Ok(pets);
+        var usuario = User.ObterUsuarioLogado();
+        var resultado = await _petService.ListarDoTutorAsync(usuario.Id, filtro, cancellationToken);
+        return Ok(resultado.ParaRespostaPaginada(Request, pet => pet.ComLinks(Url)));
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "BuscarPetPorId")]
     [AllowAnonymous]
-    public async Task<IActionResult> BuscarPorId(int id)
+    [SwaggerOperation(Summary = "Busca um pet pelo id")]
+    [ProducesResponseType(typeof(PetResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PetResponse>> BuscarPorId(int id, CancellationToken cancellationToken)
     {
-        var pet = await _petService.BuscarPorIdAsync(id);
-        if (pet is null)
-        {
-            return NotFound(new { erro = $"Pet {id} não encontrado" });
-        }
-        return Ok(pet);
+        var pet = await _petService.BuscarPorIdAsync(id, cancellationToken);
+        return Ok(pet.ComLinks(Url));
     }
 
-    [HttpPost]
-    [Authorize(Roles = "Tutor")]
-    public async Task<IActionResult> Criar([FromBody] CriarPetRequest request)
+    [HttpPost(Name = "CriarPet")]
+    [Authorize(Roles = Papeis.Tutor)]
+    [SwaggerOperation(Summary = "Cadastra um pet para o tutor logado", Description = "Se idTutor não for enviado, usa o tutor do token.")]
+    [ProducesResponseType(typeof(PetResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PetResponse>> Criar([FromBody] CriarPetRequest request, CancellationToken cancellationToken)
     {
-        var pet = new Pet
-        {
-            IdTutor = request.IdTutor,
-            Nome = request.Nome,
-            Especie = request.Especie,
-            Raca = request.Raca,
-            DataNascimento = request.DataNascimento,
-            PesoKg = request.PesoKg,
-        };
-
-        var criado = await _petService.CriarAsync(pet);
-        _logger.LogInformation("Pet {Nome} cadastrado para o tutor {IdTutor}", criado.Nome, criado.IdTutor);
-        return CreatedAtAction(nameof(BuscarPorId), new { id = criado.IdPet }, criado);
+        var criado = await _petService.CriarAsync(request, User.ObterUsuarioLogado(), cancellationToken);
+        return CreatedAtRoute("BuscarPetPorId", new { id = criado.IdPet }, criado.ComLinks(Url));
     }
 
-    [HttpPut("{id}/peso")]
-    [Authorize(Roles = "Tutor")]
-    public async Task<IActionResult> AtualizarPeso(int id, [FromBody] decimal novoPeso)
+    [HttpPut("{id:int}/peso", Name = "AtualizarPesoPet")]
+    [Authorize(Roles = Papeis.Tutor)]
+    [SwaggerOperation(Summary = "Atualiza o peso do pet", Description = "O corpo é só o número do novo peso em kg, por exemplo: 12.5")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AtualizarPeso(int id, [FromBody] decimal novoPeso, CancellationToken cancellationToken)
     {
-        try
-        {
-            var atualizado = await _petService.AtualizarPesoAsync(id, novoPeso);
-            if (!atualizado)
-            {
-                return NotFound(new { erro = $"Pet {id} não encontrado" });
-            }
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { erro = ex.Message });
-        }
+        await _petService.AtualizarPesoAsync(id, novoPeso, User.ObterUsuarioLogado(), cancellationToken);
+        return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Tutor")]
-    public async Task<IActionResult> Deletar(int id)
+    [HttpDelete("{id:int}", Name = "RemoverPet")]
+    [Authorize(Roles = Papeis.Tutor)]
+    [SwaggerOperation(Summary = "Remove um pet do tutor logado")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Remover(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deletado = await _petService.DeletarAsync(id);
-            if (!deletado)
-            {
-                return NotFound(new { erro = $"Pet {id} não encontrado" });
-            }
-            _logger.LogInformation("Pet {Id} removido", id);
-            return NoContent();
-        }
-        catch (DbUpdateException)
-        {
-            return Conflict(new
-            {
-                erro = "Não é possível excluir esse pet: existem eventos clínicos, dispositivos ou alertas vinculados a ele."
-            });
-        }
+        await _petService.RemoverAsync(id, User.ObterUsuarioLogado(), cancellationToken);
+        return NoContent();
     }
 }
