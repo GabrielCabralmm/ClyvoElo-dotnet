@@ -1,7 +1,9 @@
 using ClyvoElo.Application.DTOs.LeiturasSensor;
 using ClyvoElo.Application.Exceptions;
 using ClyvoElo.Application.Services;
+using ClyvoElo.Domain.Common;
 using ClyvoElo.Domain.Entities;
+using ClyvoElo.Domain.Filtros;
 using ClyvoElo.Domain.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -40,5 +42,28 @@ public class LeituraSensorServiceTests
         var request = new RegistrarLeituraRequest { IdDispositivo = 999, TipoMedida = "AGUA_ML", ValorMedido = 10 };
 
         await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => _service.RegistrarAsync(request));
+    }
+
+    [Fact]
+    public async Task BuscarPorIdAsync_LeituraInexistente_LancaRecursoNaoEncontradoException()
+    {
+        _leituraRepository.Setup(r => r.BuscarPorIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync((LeituraSensor?)null);
+
+        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => _service.BuscarPorIdAsync(42));
+    }
+
+    [Fact]
+    public async Task ListarAsync_RepositorioComLeituras_MapeiaParaResposta()
+    {
+        var leitura = new LeituraSensor { IdLeitura = 1, IdDispositivo = 3, TipoMedida = "AGUA_ML", ValorMedido = 500, DataHoraLeitura = DateTime.Today };
+        _leituraRepository
+            .Setup(r => r.ListarAsync(It.IsAny<LeituraSensorFiltro>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ResultadoPaginado<LeituraSensor>(new[] { leitura }, 1, 10, 1));
+
+        var resultado = await _service.ListarAsync(new LeituraSensorFiltro { IdDispositivo = 3 });
+
+        var item = Assert.Single(resultado.Itens);
+        Assert.Equal(500, item.ValorMedido);
+        Assert.Equal("AGUA_ML", item.TipoMedida);
     }
 }
