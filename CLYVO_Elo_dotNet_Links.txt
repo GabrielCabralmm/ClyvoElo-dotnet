@@ -1,5 +1,5 @@
 CLYVO Elo — Challenge FIAP 2026 (CLYVO VET)
-2º Semestre — Sprint 3
+2º Semestre — Sprint 4
 Disciplina: Advanced Business Development with .NET
 
 Integrantes:

@@ -381,7 +381,17 @@ Para monitorar em produção, aponte o liveness probe para `/health/live` e o re
 dotnet test
 ```
 
-Resultado atual: **100 testes passando** (75 unitários e 25 de integração).
+Resultado atual: **111 testes passando** (79 unitários e 32 de integração).
+
+Cobertura de linhas medida com o coverlet:
+
+| Camada | Cobertura |
+|---|---|
+| ClyvoElo.Domain | 97% |
+| ClyvoElo.Application | 96,2% |
+| ClyvoElo.Api | 88,3% |
+
+A Infrastructure fica de fora da meta porque o código dela é, na maior parte, a migração gerada pelo EF Core e o acesso real ao Oracle e ao MongoDB. Essa parte é exercitada pelos testes de integração com bancos em memória e pelos health checks.
 
 Para gerar o relatório de cobertura:
 
@@ -399,6 +409,6 @@ Os dois projetos de teste rodam **sem precisar de Oracle nem de MongoDB**:
 - **ClyvoElo.Tests.Integration**
   - `ClyvoEloApiFactory` sobe a API inteira com `WebApplicationFactory`, trocando o Oracle por EF Core InMemory e o MongoDB por um repositório em memória, e carrega a massa de `DadosIniciais`.
   - Todas as classes compartilham a mesma instância da API pela **Collection Fixture** `ClyvoEloApiCollection`.
-  - Cobrem o fluxo HTTP completo: login, token, 401/403, validação 400, 404 em ProblemDetails, criação 201, HATEOAS, filtros, envio e leitura de mensagens e os health checks `/health/live` e `/health/ready`.
+  - Cobrem o fluxo HTTP completo: login, token, 401/403, validação 400, 404 em ProblemDetails, criação 201, HATEOAS, filtros e ordenação, doutores, dispositivos IoT, leituras de sensor, envio e leitura de mensagens e os health checks `/health/live` e `/health/ready`.
 
 Todos os testes seguem o padrão **AAA** (Arrange, Act, Assert, separados por linha em branco) e a nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`.
