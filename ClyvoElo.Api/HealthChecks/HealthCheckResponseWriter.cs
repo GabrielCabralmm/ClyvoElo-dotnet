@@ -5,6 +5,8 @@ namespace ClyvoElo.Api.HealthChecks;
 
 public static class HealthCheckResponseWriter
 {
+    private static readonly JsonSerializerOptions Opcoes = new() { WriteIndented = true };
+
     public static Task WriteResponse(HttpContext context, HealthReport report)
     {
         context.Response.ContentType = "application/json";
@@ -20,10 +22,10 @@ public static class HealthCheckResponseWriter
                 descricao = e.Value.Description,
                 duracaoMs = e.Value.Duration.TotalMilliseconds,
                 tags = e.Value.Tags,
+                erro = e.Value.Exception?.Message,
             }),
         };
 
-        return context.Response.WriteAsync(
-            JsonSerializer.Serialize(resultado, new JsonSerializerOptions { WriteIndented = true }));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(resultado, Opcoes));
     }
 }

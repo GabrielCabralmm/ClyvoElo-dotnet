@@ -1,113 +1,34 @@
-using ClyvoElo.Api.Data;
-using ClyvoElo.Api.Services;
-using ClyvoElo.Api.HealthChecks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Serilog;
-using Serilog.Context;
-using Serilog.Events;
-using Microsoft.OpenApi.Models;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using System.Text.Json.Serialization;
-using ClyvoElo.Api.Telemetry;
+using ClyvoElo.Api.Extensions;
+using ClyvoElo.Api.Middlewares;
+using ClyvoElo.Application;
+using ClyvoElo.Infrastructure;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var portDoRender = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrEmpty(portDoRender))
+var portaDoRender = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(portaDoRender))
 {
-    builder.WebHost.UseUrls($"http://0.0.0.0:{portDoRender}");
+    builder.WebHost.UseUrls($"http://0.0.0.0:{portaDoRender}");
 }
 
-builder.Host.UseSerilog((context, configuration) =>
-{
-    configuration
-        .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-        .Enrich.FromLogContext()
-        .WriteTo.Console(
-            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}")
-        .WriteTo.File(
-            "logs/clyvoelo-.log",
-            rollingInterval: RollingInterval.Day,
-            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}");
-});
+builder.AdicionarLogEstruturado();
 
-builder.Services.AddDbContext<ClyvoEloContext>(options =>
-    options.UseOracle(builder.Configuration.GetConnectionString("OracleDb")));
-
-builder.Services.AddScoped<IPetService, PetService>();
-
-builder.Services.AddHttpClient();
-
-builder.Services.AddHealthChecks()
-    .AddCheck<ApiSelfHealthCheck>("api", tags: new[] { "live" })
-    .AddCheck<OracleHealthCheck>("oracle_db", tags: new[] { "ready", "banco" })
-    .AddCheck<ServicoExternoHealthCheck>("servico_externo", tags: new[] { "ready", "externo" });
-
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(ClyvoEloTelemetry.ServiceName))
-    .WithTracing(tracing => tracing
-        .AddSource(ClyvoEloTelemetry.ServiceName)
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddConsoleExporter())
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddRuntimeInstrumentation()
-        .AddConsoleExporter());
-
-var jwtKey = builder.Configuration["Jwt:Key"]!;
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        };
-    });
-builder.Services.AddAuthorization();
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration)
+    .AdicionarAutenticacaoJwt(builder.Configuration)
+    .AdicionarDocumentacaoSwagger()
+    .AdicionarObservabilidade(builder.Environment)
+    .AdicionarHealthChecks()
+    .AdicionarTratamentoDeErros();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Cole aqui o token que o /api/Auth/login devolveu (sem escrever \"Bearer\" na frente)",
-    });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" },
-            },
-            Array.Empty<string>()
-        },
-    });
-});
 
 builder.Services.AddCors(options =>
 {
@@ -115,50 +36,31 @@ builder.Services.AddCors(options =>
     {
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .WithExposedHeaders(CorrelationIdMiddleware.Cabecalho);
     });
 });
 
 var app = builder.Build();
 
-app.Use(async (httpContext, next) =>
-{
-    using (LogContext.PushProperty("CorrelationId", httpContext.TraceIdentifier))
-    {
-        await next();
-    }
-});
+await app.AplicarMigracoesAsync();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI(options => options.DocumentTitle = "CLYVO Elo API");
 
 app.UseCors("PermitirTudo");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 app.MapControllers();
-
-app.MapHealthChecks("/health", new HealthCheckOptions
-{
-    ResponseWriter = HealthCheckResponseWriter.WriteResponse,
-});
-
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("live"),
-    ResponseWriter = HealthCheckResponseWriter.WriteResponse,
-});
-
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("ready"),
-    ResponseWriter = HealthCheckResponseWriter.WriteResponse,
-});
+app.MapearHealthChecks();
 
 app.Run();
 
