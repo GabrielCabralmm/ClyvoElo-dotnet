@@ -78,9 +78,9 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AdicionarObservabilidade(this IServiceCollection services, IHostEnvironment environment)
+    public static IServiceCollection AdicionarObservabilidade(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
-        var exportarNoConsole = !environment.IsEnvironment("Testing");
+        var exportarNoConsole = configuration.GetValue<bool>("Observabilidade:ExportarNoConsole") && !environment.IsEnvironment("Testing");
 
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(ClyvoEloTelemetry.NomeServico))

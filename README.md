@@ -373,7 +373,7 @@ Para monitorar em produção, aponte o liveness probe para `/health/live` e o re
 - Tracing automático das requisições HTTP de entrada e saída, mais o span manual `RegistrarEventoClinico`, com as tags do evento.
 - Métricas automáticas do ASP.NET Core (tempo de resposta e requisições por status code) e de runtime (memória, GC, threads).
 - Métricas de negócio próprias: `clyvoelo.eventos_clinicos.registrados`, `clyvoelo.auth.logins_recusados` e `clyvoelo.mensagens.enviadas`.
-- Exportação no console, visível ao rodar `dotnet run`.
+- Exportação no console, ligada por `"Observabilidade:ExportarNoConsole": true` no `appsettings.json` (ou pela variável `Observabilidade__ExportarNoConsole=true`). Ela vem desligada para não misturar as métricas com os logs no terminal.
 
 ## Testes
 

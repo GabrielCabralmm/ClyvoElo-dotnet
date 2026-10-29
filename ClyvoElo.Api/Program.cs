@@ -20,7 +20,7 @@ builder.Services
     .AddInfrastructure(builder.Configuration)
     .AdicionarAutenticacaoJwt(builder.Configuration)
     .AdicionarDocumentacaoSwagger()
-    .AdicionarObservabilidade(builder.Environment)
+    .AdicionarObservabilidade(builder.Configuration, builder.Environment)
     .AdicionarHealthChecks()
     .AdicionarTratamentoDeErros();
 
