@@ -79,14 +79,14 @@ ClyvoElo.Tests.Unit/
 ClyvoElo.Tests.Integration/
   Endpoints/  Fixtures/  Fakes/
 docs/
-  arquitetura.png  swagger.json
+  arquitetura.png  arquitetura.svg  swagger.json  migracao-inicial.sql
 ```
 
 ## Persistência
 
 ### Oracle (relacional) com EF Core
 
-As tabelas `TUTOR`, `PET`, `CLINICA`, `DOUTOR`, `EVENTO_CLINICO`, `DISPOSITIVO_IOT` e `LEITURA_SENSOR` são mapeadas em `ClyvoElo.Infrastructure/Persistence/Configurations`. A migração inicial fica em `Persistence/Migrations`.
+As tabelas `TUTOR`, `PET`, `CLINICA`, `DOUTOR`, `EVENTO_CLINICO`, `DISPOSITIVO_IOT` e `LEITURA_SENSOR` são mapeadas em `ClyvoElo.Infrastructure/Persistence/Configurations`. A migração inicial (`20261029160111_CriacaoInicial`) fica em `Persistence/Migrations`. O SQL que ela gera para o Oracle foi exportado em [`docs/migracao-inicial.sql`](docs/migracao-inicial.sql).
 
 Para instalar a ferramenta do EF (uma vez só):
 
@@ -110,7 +110,7 @@ CREATE TABLE "__EFMigrationsHistory" (
   "ProductVersion" NVARCHAR2(32) NOT NULL,
   CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
 );
-INSERT INTO "__EFMigrationsHistory" VALUES ('<id da migração em Persistence/Migrations>', '10.0.12');
+INSERT INTO "__EFMigrationsHistory" VALUES ('20261029160111_CriacaoInicial', '10.0.12');
 COMMIT;
 ```
 
@@ -373,13 +373,25 @@ Para monitorar em produção, aponte o liveness probe para `/health/live` e o re
 - Tracing automático das requisições HTTP de entrada e saída, mais o span manual `RegistrarEventoClinico`, com as tags do evento.
 - Métricas automáticas do ASP.NET Core (tempo de resposta e requisições por status code) e de runtime (memória, GC, threads).
 - Métricas de negócio próprias: `clyvoelo.eventos_clinicos.registrados`, `clyvoelo.auth.logins_recusados` e `clyvoelo.mensagens.enviadas`.
-- Exportação no console, visível ao rodar `dotnet run`.
+- Exportação no console, ligada por `"Observabilidade:ExportarNoConsole": true` no `appsettings.json` (ou pela variável `Observabilidade__ExportarNoConsole=true`). Ela vem desligada para não misturar as métricas com os logs no terminal.
 
 ## Testes
 
 ```
 dotnet test
 ```
+
+Resultado atual: **111 testes passando** (79 unitários e 32 de integração).
+
+Cobertura de linhas medida com o coverlet:
+
+| Camada | Cobertura |
+|---|---|
+| ClyvoElo.Domain | 97% |
+| ClyvoElo.Application | 96,2% |
+| ClyvoElo.Api | 88,3% |
+
+A Infrastructure fica de fora da meta porque o código dela é, na maior parte, a migração gerada pelo EF Core e o acesso real ao Oracle e ao MongoDB. Essa parte é exercitada pelos testes de integração com bancos em memória e pelos health checks.
 
 Para gerar o relatório de cobertura:
 
@@ -397,6 +409,6 @@ Os dois projetos de teste rodam **sem precisar de Oracle nem de MongoDB**:
 - **ClyvoElo.Tests.Integration**
   - `ClyvoEloApiFactory` sobe a API inteira com `WebApplicationFactory`, trocando o Oracle por EF Core InMemory e o MongoDB por um repositório em memória, e carrega a massa de `DadosIniciais`.
   - Todas as classes compartilham a mesma instância da API pela **Collection Fixture** `ClyvoEloApiCollection`.
-  - Cobrem o fluxo HTTP completo: login, token, 401/403, validação 400, 404 em ProblemDetails, criação 201, HATEOAS, filtros, envio e leitura de mensagens e os health checks `/health/live` e `/health/ready`.
+  - Cobrem o fluxo HTTP completo: login, token, 401/403, validação 400, 404 em ProblemDetails, criação 201, HATEOAS, filtros e ordenação, doutores, dispositivos IoT, leituras de sensor, envio e leitura de mensagens e os health checks `/health/live` e `/health/ready`.
 
 Todos os testes seguem o padrão **AAA** (Arrange, Act, Assert, separados por linha em branco) e a nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`.

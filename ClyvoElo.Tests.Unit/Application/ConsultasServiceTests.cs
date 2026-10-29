@@ -58,4 +58,29 @@ public class ConsultasServiceTests
         Assert.Empty(resultado.Itens);
         repository.Verify(r => r.ListarAsync(filtro, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task DispositivoIotService_BuscarPorIdAsync_Existente_MapeiaDispositivo()
+    {
+        var repository = new Mock<IDispositivoIotRepository>();
+        repository
+            .Setup(r => r.BuscarPorIdAsync(3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DispositivoIot { IdDispositivo = 3, IdPet = 5, TipoDispositivo = "POTE_RACAO" });
+        var service = new DispositivoIotService(repository.Object);
+
+        var dispositivo = await service.BuscarPorIdAsync(3);
+
+        Assert.Equal(5, dispositivo.IdPet);
+        Assert.Equal("POTE_RACAO", dispositivo.TipoDispositivo);
+    }
+
+    [Fact]
+    public async Task DispositivoIotService_BuscarPorIdAsync_Inexistente_LancaRecursoNaoEncontradoException()
+    {
+        var repository = new Mock<IDispositivoIotRepository>();
+        repository.Setup(r => r.BuscarPorIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync((DispositivoIot?)null);
+        var service = new DispositivoIotService(repository.Object);
+
+        await Assert.ThrowsAsync<RecursoNaoEncontradoException>(() => service.BuscarPorIdAsync(77));
+    }
 }
