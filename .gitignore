@@ -3,3 +3,6 @@ obj/
 .vs/
 *.user
 ClyvoElo.Api/logs/
+**/logs/
+TestResults/
+coverage/
