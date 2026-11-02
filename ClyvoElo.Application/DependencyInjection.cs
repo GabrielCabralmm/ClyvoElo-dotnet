@@ -14,6 +14,8 @@ public static class DependencyInjection
         services.AddScoped<IDispositivoIotService, DispositivoIotService>();
         services.AddScoped<ILeituraSensorService, LeituraSensorService>();
         services.AddScoped<IMensagemAcompanhamentoService, MensagemAcompanhamentoService>();
+        services.AddScoped<IAlertaService, AlertaService>();
+        services.AddScoped<IDatasetService, DatasetService>();
         return services;
     }
 }
