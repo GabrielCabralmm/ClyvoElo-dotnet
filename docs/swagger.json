@@ -6,6 +6,239 @@
     "version": "v1"
   },
   "paths": {
+    "/api/Alertas": {
+      "post": {
+        "tags": [
+          "Alertas"
+        ],
+        "summary": "Registra um alerta (pkg_clyvo_alerta.prc_registrar_alerta)",
+        "description": "origem: CLINICO ou AMBIENTAL. prioridade: BAIXA, MEDIA ou ALTA. A pontuação de risco é calculada no Oracle pela função fn_calcula_pontuacao_risco (somaFatores / qtdFatores, limitada a 10). A trigger trg_auditoria_alerta grava o INSERT na tabela AUDITORIA.",
+        "operationId": "RegistrarAlerta",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarAlertaRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarAlertaRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarAlertaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertaRegistradoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Alertas/{id}/status": {
+      "put": {
+        "tags": [
+          "Alertas"
+        ],
+        "summary": "Atualiza o status do alerta (pkg_clyvo_alerta.prc_atualizar_status)",
+        "description": "O corpo é só o novo status entre aspas: \"NOVO\", \"ENVIADO\" ou \"RESOLVIDO\". A trigger grava o UPDATE na AUDITORIA.",
+        "operationId": "AtualizarStatusAlerta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Alertas/{id}": {
+      "delete": {
+        "tags": [
+          "Alertas"
+        ],
+        "summary": "Exclui um alerta (pkg_clyvo_alerta.prc_excluir_alerta)",
+        "description": "A trigger grava o DELETE na AUDITORIA com os valores antigos do alerta.",
+        "operationId": "ExcluirAlerta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Alertas/relatorio": {
+      "get": {
+        "tags": [
+          "Alertas"
+        ],
+        "summary": "Relatório de pontuação por origem e prioridade (pkg_clyvo_alerta.prc_relatorio_alertas)",
+        "description": "Soma manual por origem/prioridade, subtotal por origem e total geral. Filtro opcional: origem (CLINICO ou AMBIENTAL).",
+        "operationId": "RelatorioAlertas",
+        "parameters": [
+          {
+            "name": "origem",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Auth/login/tutor": {
       "post": {
         "tags": [
@@ -175,6 +408,85 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Dataset/pets": {
+      "get": {
+        "tags": [
+          "Dataset"
+        ],
+        "summary": "Pets com tutor em JSON montado no Oracle (pkg_clyvo_pet.prc_lista_pets_json)",
+        "description": "O JSON é gerado manualmente pela função pkg_clyvo_json.fn_monta_json_pet, sem funções JSON nativas do Oracle. Filtro opcional: especie.",
+        "operationId": "ListarPetsJsonOracle",
+        "parameters": [
+          {
+            "name": "especie",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Dataset/exportar": {
+      "get": {
+        "tags": [
+          "Dataset"
+        ],
+        "summary": "Exporta o dataset para o MongoDB (pkg_clyvo_pet.prc_exportar_dataset)",
+        "description": "Devolve o arquivo JSON com um documento por pet (tutor, eventos clínicos, dispositivos com leituras e alertas), pronto para importar no MongoDB.",
+        "operationId": "ExportarDataset",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -2035,6 +2347,32 @@
   },
   "components": {
     "schemas": {
+      "AlertaRegistradoResponse": {
+        "type": "object",
+        "properties": {
+          "idAlerta": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idPet": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "origem": {
+            "type": "string",
+            "nullable": true
+          },
+          "prioridade": {
+            "type": "string",
+            "nullable": true
+          },
+          "mensagem": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CadastroTutorRequest": {
         "required": [
           "email",
@@ -2742,6 +3080,43 @@
           }
         },
         "additionalProperties": {}
+      },
+      "RegistrarAlertaRequest": {
+        "required": [
+          "mensagem",
+          "origem",
+          "prioridade"
+        ],
+        "type": "object",
+        "properties": {
+          "idPet": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "origem": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "prioridade": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "somaFatores": {
+            "type": "number",
+            "format": "double"
+          },
+          "qtdFatores": {
+            "type": "number",
+            "format": "double"
+          },
+          "mensagem": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "RegistrarLeituraRequest": {
         "required": [
