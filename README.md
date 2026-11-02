@@ -71,7 +71,7 @@ ClyvoElo.Application/
   DTOs/  Services/  Mappers/  Interfaces/  Exceptions/  Common/  Observabilidade/
 ClyvoElo.Infrastructure/
   Persistence/ (Context, Configurations, Migrations, DadosIniciais)
-  Repositories/  Mongo/  Security/  HealthChecks/
+  Repositories/  Procedures/  Mongo/  Security/  HealthChecks/
 ClyvoElo.Api/
   Controllers/  Hateoas/  Middlewares/  Extensions/  HealthChecks/
 ClyvoElo.Tests.Unit/
@@ -113,6 +113,21 @@ CREATE TABLE "__EFMigrationsHistory" (
 INSERT INTO "__EFMigrationsHistory" VALUES ('20261029160111_CriacaoInicial', '10.0.12');
 COMMIT;
 ```
+
+### Procedures dos packages Oracle
+
+A tabela `ALERTA`, a `AUDITORIA` e os packages PL/SQL vêm do script da disciplina de Banco de Dados. A API não mapeia essas tabelas no EF Core. Em vez disso, ela chama as procedures dos packages com ODP.NET (`ClyvoElo.Infrastructure/Procedures/ProcedimentosOracle.cs`), usando a mesma conexão do `ClyvoEloContext`:
+
+| Endpoint | Procedure chamada |
+|---|---|
+| `POST /api/Alertas` | `pkg_clyvo_alerta.prc_registrar_alerta` (calcula a pontuação com `fn_calcula_pontuacao_risco`) |
+| `PUT /api/Alertas/{id}/status` | `pkg_clyvo_alerta.prc_atualizar_status` |
+| `DELETE /api/Alertas/{id}` | `pkg_clyvo_alerta.prc_excluir_alerta` |
+| `GET /api/Alertas/relatorio` | `pkg_clyvo_alerta.prc_relatorio_alertas` |
+| `GET /api/Dataset/pets` | `pkg_clyvo_pet.prc_lista_pets_json` (JSON montado por `pkg_clyvo_json.fn_monta_json_pet`) |
+| `GET /api/Dataset/exportar` | `pkg_clyvo_pet.prc_exportar_dataset` (arquivo JSON para importar no MongoDB) |
+
+Cada `INSERT`, `UPDATE` e `DELETE` de alerta dispara a trigger `trg_auditoria_alerta`, que grava a operação na tabela `AUDITORIA`. Os erros que as procedures lançam com `RAISE_APPLICATION_ERROR` (-20000 a -20999) viram respostas ProblemDetails: registro inexistente vira `404` e violação de regra vira `400`, sempre com a mensagem escrita no PL/SQL.
 
 ### MongoDB (NoSQL)
 
@@ -203,6 +218,8 @@ Cole o token devolvido no botão **Authorize** do Swagger.
 | Enviar e excluir mensagem de acompanhamento | Doutor (só as que ele enviou) |
 | Ler mensagens e marcar como lida | Tutor (só as dos próprios pets); o doutor consulta todas |
 | Registrar leitura de sensor | Livre (enviado pelo dispositivo IoT) |
+| Registrar, atualizar e excluir alerta, relatório de alertas, exportar dataset | Doutor |
+| Pets em JSON gerado pelo Oracle | Livre |
 
 ## Endpoints
 
@@ -240,6 +257,12 @@ A documentação completa fica no Swagger (`/swagger`). Uma versão exportada es
 | POST | `/api/Mensagens` | Doutor envia mensagem ao tutor | Doutor |
 | PATCH | `/api/Mensagens/{id}/lida` | Marca como lida | Tutor destinatário |
 | DELETE | `/api/Mensagens/{id}` | Remove mensagem | Doutor autor |
+| POST | `/api/Alertas` | Registra alerta via procedure do Oracle | Doutor |
+| PUT | `/api/Alertas/{id}/status` | Atualiza status (corpo: `"RESOLVIDO"`) via procedure | Doutor |
+| DELETE | `/api/Alertas/{id}` | Exclui alerta via procedure | Doutor |
+| GET | `/api/Alertas/relatorio` | Relatório com subtotais (texto) via procedure | Doutor |
+| GET | `/api/Dataset/pets` | Pets com tutor em JSON gerado no Oracle | Livre |
+| GET | `/api/Dataset/exportar` | Baixa o JSON do dataset para o MongoDB | Doutor |
 | GET | `/health`, `/health/live`, `/health/ready` | Health checks | Livre |
 
 ### Paginação, filtros e ordenação
@@ -381,17 +404,17 @@ Para monitorar em produção, aponte o liveness probe para `/health/live` e o re
 dotnet test
 ```
 
-Resultado atual: **111 testes passando** (79 unitários e 32 de integração).
+Resultado atual: **138 testes passando** (96 unitários e 42 de integração).
 
 Cobertura de linhas medida com o coverlet:
 
 | Camada | Cobertura |
 |---|---|
 | ClyvoElo.Domain | 97% |
-| ClyvoElo.Application | 96,2% |
-| ClyvoElo.Api | 88,3% |
+| ClyvoElo.Application | 96,7% |
+| ClyvoElo.Api | 89% |
 
-A Infrastructure fica de fora da meta porque o código dela é, na maior parte, a migração gerada pelo EF Core e o acesso real ao Oracle e ao MongoDB. Essa parte é exercitada pelos testes de integração com bancos em memória e pelos health checks.
+A Infrastructure fica de fora da meta porque o código dela é, na maior parte, a migração gerada pelo EF Core e o acesso real ao Oracle (incluindo a chamada das procedures) e ao MongoDB. Essa parte é exercitada pelos testes de integração com bancos em memória e pelos health checks.
 
 Para gerar o relatório de cobertura:
 
@@ -405,10 +428,11 @@ Os dois projetos de teste rodam **sem precisar de Oracle nem de MongoDB**:
   - `Domain/`: regras das entidades (peso do pet, tipo e status do evento, mensagem lida, leitura de sensor, paginação).
   - `Application/`: services com os repositórios mockados no Moq (autorização por dono, login, cadastro, conflitos, recurso não encontrado).
   - `Api/`: controller com HATEOAS e `GlobalExceptionHandler` mapeando cada exceção para o status HTTP.
+  - `Infrastructure/`: conversão dos erros `-20xxx` das procedures do Oracle em exceções da aplicação.
   - `Fixtures/DadosDeTesteFixture`: dados compartilhados entre as classes por uma **Collection Fixture**.
 - **ClyvoElo.Tests.Integration**
-  - `ClyvoEloApiFactory` sobe a API inteira com `WebApplicationFactory`, trocando o Oracle por EF Core InMemory e o MongoDB por um repositório em memória, e carrega a massa de `DadosIniciais`.
+  - `ClyvoEloApiFactory` sobe a API inteira com `WebApplicationFactory`, trocando o Oracle por EF Core InMemory, as procedures dos packages por uma implementação em memória e o MongoDB por um repositório em memória, e carrega a massa de `DadosIniciais`.
   - Todas as classes compartilham a mesma instância da API pela **Collection Fixture** `ClyvoEloApiCollection`.
-  - Cobrem o fluxo HTTP completo: login, token, 401/403, validação 400, 404 em ProblemDetails, criação 201, HATEOAS, filtros e ordenação, doutores, dispositivos IoT, leituras de sensor, envio e leitura de mensagens e os health checks `/health/live` e `/health/ready`.
+  - Cobrem o fluxo HTTP completo: login, token, 401/403, validação 400, 404 em ProblemDetails, criação 201, HATEOAS, filtros e ordenação, doutores, dispositivos IoT, leituras de sensor, envio e leitura de mensagens, alertas e exportação do dataset pelas procedures e os health checks `/health/live` e `/health/ready`.
 
 Todos os testes seguem o padrão **AAA** (Arrange, Act, Assert, separados por linha em branco) e a nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`.
