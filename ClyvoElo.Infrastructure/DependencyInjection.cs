@@ -3,6 +3,7 @@ using ClyvoElo.Domain.Repositories;
 using ClyvoElo.Infrastructure.HealthChecks;
 using ClyvoElo.Infrastructure.Mongo;
 using ClyvoElo.Infrastructure.Persistence;
+using ClyvoElo.Infrastructure.Procedures;
 using ClyvoElo.Infrastructure.Repositories;
 using ClyvoElo.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IEventoClinicoRepository, EventoClinicoRepository>();
         services.AddScoped<IDispositivoIotRepository, DispositivoIotRepository>();
         services.AddScoped<ILeituraSensorRepository, LeituraSensorRepository>();
+        services.AddScoped<IProcedimentosOracle, ProcedimentosOracle>();
 
         services.AddMongoDb(configuration);
 
