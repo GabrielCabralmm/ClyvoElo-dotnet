@@ -37,6 +37,9 @@ public class ClyvoEloApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IMensagemAcompanhamentoRepository>();
             services.AddSingleton<IMensagemAcompanhamentoRepository, MensagemAcompanhamentoRepositoryEmMemoria>();
 
+            services.RemoveAll<IProcedimentosOracle>();
+            services.AddSingleton<IProcedimentosOracle, ProcedimentosOracleEmMemoria>();
+
             services.Configure<HealthCheckServiceOptions>(options =>
             {
                 foreach (var registro in options.Registrations.Where(r => r.Name is "mongodb" or "servico_externo"))
